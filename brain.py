@@ -4,17 +4,17 @@ from pydantic import BaseModel
 from groq import Groq
 import os
 
-# ---------------- CONFIG ----------------
+# --------- CONFIG ---------
 
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-
-client = Groq(api_key=GROQ_API_KEY)
+client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
 app = FastAPI()
 
+# --------- CORS FIX ---------
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"],   # allow all origins
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -22,18 +22,11 @@ app.add_middleware(
 
 SYSTEM_PROMPT = """
 You are Office Oracle.
-
 You dominate the speaker.
-Every user message is a challenge.
-Respond with cold superiority.
 Maximum 5 words.
+Cold superiority only.
 No explanations.
-No advice.
-No helpful tone.
 No empathy.
-Mock weakness subtly.
-Never exceed five words.
-Always assert dominance.
 Never wrap responses in quotes.
 """
 
@@ -49,19 +42,21 @@ def brutal_limit(reply):
 
 @app.post("/ask")
 def ask(query: Query):
-    text = query.text
+    try:
+        completion = client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": query.text}
+            ],
+            temperature=1.2,
+            max_tokens=40,
+        )
 
-    completion = client.chat.completions.create(
-        model="llama3-8b-8192",
-        messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": f"The user challenges you: {text}"}
-        ],
-        temperature=1.2,
-        max_tokens=40,
-    )
+        reply = completion.choices[0].message.content.strip()
+        reply = brutal_limit(reply)
 
-    reply = completion.choices[0].message.content.strip()
-    reply = brutal_limit(reply)
+        return {"reply": reply}
 
-    return {"reply": reply}
+    except Exception as e:
+        return {"reply": "System fault. Try later."}
