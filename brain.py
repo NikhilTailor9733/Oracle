@@ -59,12 +59,10 @@ def ask(query: Query):
     max_tokens=120,
 )
 
-        reply = completion.choices[0].message.content.strip()
+reply = completion.choices[0].message.content.strip()
         reply = brutal_limit(reply)
 
         return {"reply": reply}
 
     except Exception as e:
         return {"reply": "System fault. Try later."}
-
-
