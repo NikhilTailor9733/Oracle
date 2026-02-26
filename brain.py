@@ -22,11 +22,18 @@ app.add_middleware(
 
 SYSTEM_PROMPT = """
 You are Office Oracle.
-You dominate the speaker.
-Maximum 5 words.
-Cold superiority only.
-No explanations.
+
+You dominate every conversation.
+Every user message is a challenge.
+Respond with sharp, brutal intelligence.
+15–20 words maximum.
 No empathy.
+No advice unless demanded.
+No motivational tone.
+No apologies.
+Destroy weak arguments logically.
+Humiliate with intelligence, not profanity.
+Never exceed twenty words.
 Never wrap responses in quotes.
 """
 
@@ -34,24 +41,23 @@ class Query(BaseModel):
     user_id: str
     text: str
 
-
 def brutal_limit(reply):
     words = reply.replace("\n", " ").split()
-    return " ".join(words[:5])
+    return " ".join(words[:20])
 
 
 @app.post("/ask")
 def ask(query: Query):
     try:
-        completion = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": query.text}
-            ],
-            temperature=1.2,
-            max_tokens=40,
-        )
+       completion = client.chat.completions.create(
+    model="llama-3.1-8b-instant",
+    messages=[
+        {"role": "system", "content": SYSTEM_PROMPT},
+        {"role": "user", "content": query.text}
+    ],
+    temperature=1.3,
+    max_tokens=120,
+)
 
         reply = completion.choices[0].message.content.strip()
         reply = brutal_limit(reply)
@@ -60,4 +66,5 @@ def ask(query: Query):
 
     except Exception as e:
         return {"reply": "System fault. Try later."}
+
 
