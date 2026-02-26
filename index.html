@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Oracle</title>
+  <title>Office Oracle</title>
+  <script src="https://www.youtube.com/iframe_api"></script>
   <style>
     body {
       margin: 0;
@@ -80,10 +81,6 @@
       cursor: pointer;
     }
 
-    button:hover {
-      opacity: 0.85;
-    }
-
     .mic {
       background: #222;
       color: #00ff88;
@@ -94,25 +91,45 @@
       from { opacity: 0; transform: translateY(5px); }
       to { opacity: 1; transform: translateY(0); }
     }
+
+    #player {
+      display: none; /* hidden video */
+    }
   </style>
 </head>
 <body>
 
-<header>🔥 Oracle</header>
+<header>🔥 Office Oracle</header>
 
 <div id="chat"></div>
 
 <div id="inputArea">
-  <input type="text" id="question" placeholder="Challenge me." />
+  <input type="text" id="question" placeholder="Challenge me or play music." />
   <button onclick="askOracle()">Send</button>
   <button class="mic" onclick="startVoice()">🎤</button>
 </div>
+
+<div id="player"></div>
 
 <script>
 const API_URL = "https://oracle-x6tl.onrender.com/ask";
 const chat = document.getElementById("chat");
 
-// Add message bubble
+let player;
+let currentPlaylist = [];
+let currentIndex = 0;
+
+function onYouTubeIframeAPIReady() {
+  player = new YT.Player("player", {
+    height: "0",
+    width: "0",
+    videoId: "",
+    playerVars: {
+      autoplay: 1
+    }
+  });
+}
+
 function addMessage(text, type) {
   const div = document.createElement("div");
   div.className = "message " + type;
@@ -121,7 +138,7 @@ function addMessage(text, type) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-// 🔊 Voice Output
+// 🔊 Voice output
 function speak(text) {
   const speech = new SpeechSynthesisUtterance(text);
   speech.rate = 1;
@@ -130,7 +147,7 @@ function speak(text) {
   window.speechSynthesis.speak(speech);
 }
 
-// 🎤 Voice Input
+// 🎤 Voice input
 function startVoice() {
   const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
   recognition.lang = "en-US";
@@ -143,7 +160,41 @@ function startVoice() {
   };
 }
 
-// Send to backend
+// 🎵 Play song (YouTube search playlist)
+function playSong(query) {
+  addMessage("Playing: " + query, "bot");
+  player.loadPlaylist({
+    listType: "search",
+    list: query
+  });
+}
+
+// 🎵 Music controls
+function pauseMusic() {
+  player.pauseVideo();
+  addMessage("Music paused.", "bot");
+}
+
+function resumeMusic() {
+  player.playVideo();
+  addMessage("Music resumed.", "bot");
+}
+
+function stopMusic() {
+  player.stopVideo();
+  addMessage("Music stopped.", "bot");
+}
+
+function nextMusic() {
+  player.nextVideo();
+  addMessage("Next track.", "bot");
+}
+
+function previousMusic() {
+  player.previousVideo();
+  addMessage("Previous track.", "bot");
+}
+
 async function askOracle() {
   const input = document.getElementById("question");
   const text = input.value.trim();
@@ -151,6 +202,21 @@ async function askOracle() {
 
   addMessage(text, "user");
   input.value = "";
+
+  const lower = text.toLowerCase();
+
+  // 🎵 MUSIC COMMANDS
+  if (lower.startsWith("play ")) {
+    const song = text.replace(/play /i, "");
+    playSong(song);
+    return;
+  }
+
+  if (lower === "pause") return pauseMusic();
+  if (lower === "resume") return resumeMusic();
+  if (lower === "stop") return stopMusic();
+  if (lower === "next") return nextMusic();
+  if (lower === "previous") return previousMusic();
 
   const typing = document.createElement("div");
   typing.className = "message bot";
@@ -170,11 +236,9 @@ async function askOracle() {
 
   chat.removeChild(typing);
   addMessage(data.reply, "bot");
-
-  speak(data.reply); // 🔊 Speak response
+  speak(data.reply);
 }
 </script>
 
 </body>
 </html>
-
